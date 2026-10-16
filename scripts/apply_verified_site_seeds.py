@@ -3,7 +3,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -18,6 +22,8 @@ def main() -> None:
     parser.add_argument("--seeds", required=True, help="JSON array containing organisation_number, website and proof_url")
     parser.add_argument("--output", required=True)
     parser.add_argument("--report", required=True)
+    parser.add_argument("--crawl", action="store_true", help="Fetch and run identity gate on applied seeds")
+    parser.add_argument("--timeout", type=float, default=15.0)
     args = parser.parse_args()
 
     profiles = read_jsonl(Path(args.profiles))
@@ -44,6 +50,13 @@ def main() -> None:
             "proof_url": proof_url,
             "proof": str(seed.get("proof") or ""),
         }
+        if args.crawl:
+            from norway_company_agent.identity import apply_website_identity_gate
+            from norway_company_agent.website import fetch_website
+
+            website_record, _ = fetch_website(website, timeout=args.timeout)
+            gated = apply_website_identity_gate(profile, website_record)
+            profile.setdefault("evidence", {})["website"] = gated["website"]
         applied.append({"organisation_number": org, "website": website, "proof_url": proof_url})
 
     output = Path(args.output)
@@ -53,6 +66,7 @@ def main() -> None:
         "profiles": len(profiles),
         "verified_seeds": len(seed_rows),
         "applied": len(applied),
+        "crawled": len(applied) if args.crawl else 0,
         "rows": applied,
         "claim_boundary": "Seeds are candidates; publication still requires the normal fetched-page exact-entity gate.",
     }

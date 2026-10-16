@@ -11,11 +11,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from norway_company_agent.identity import apply_website_identity_gate  # noqa: E402
+from norway_company_agent.website import fetch_website  # noqa: E402
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", required=True)
+    parser.add_argument("--fetch-missing", action="store_true", help="Fetch website for profiles that have a website URL but no available website evidence.")
+    parser.add_argument("--timeout", type=float, default=10.0, help="HTTP timeout in seconds when fetching missing websites.")
     args = parser.parse_args()
     path = Path(args.input)
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
@@ -24,11 +27,16 @@ def main() -> None:
     for row in rows:
         website = row.get("evidence", {}).get("website", {})
         if website.get("status") != "available":
-            continue
+            if args.fetch_missing and row.get("website"):
+                website, _ = fetch_website(row.get("website"), timeout=args.timeout)
+            else:
+                continue
         gated = apply_website_identity_gate(row, website)
+        row.setdefault("evidence", {})["website"] = gated["website"]
         assessment = gated["assessment"]
-        quarantined_links += gated["quarantined_social_links"]
-        statuses[assessment["status"]] += 1
+        if assessment:
+            quarantined_links += gated["quarantined_social_links"]
+            statuses[assessment["status"]] += 1
     temporary = path.with_suffix(path.suffix + ".tmp")
     with temporary.open("w", encoding="utf-8") as handle:
         for row in rows:

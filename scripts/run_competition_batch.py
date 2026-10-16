@@ -39,6 +39,7 @@ def main() -> None:
     parser.add_argument("--checkpoint-every", type=int, default=25)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--modules", default="registry,accounting_obligation,registry_live,financials,roles,group,locations,website")
+    parser.add_argument("--seeds", help="Optional verified website seeds JSON file")
     args = parser.parse_args()
 
     started_at = utc_now()
@@ -47,11 +48,27 @@ def main() -> None:
     if len(orgs) != args.expected_count:
         raise SystemExit(f"Expected {args.expected_count} organisations, received {len(orgs)}")
     profiles, registry_metadata = profiles_from_bulk(args.bulk, orgs)
+
+    seeds_by_org = {}
+    if args.seeds and Path(args.seeds).exists():
+        raw_seeds = json.loads(Path(args.seeds).read_text(encoding="utf-8"))
+        seeds_by_org = {str(item["organisation_number"]): item for item in raw_seeds}
+
     annotations = {item["organisation_number"]: item for item in organisation_inputs}
     for profile in profiles:
-        for key in ("evaluation_split", "sample_slice"):
-            if key in annotations[profile["organisation_number"]]:
-                profile[key] = annotations[profile["organisation_number"]][key]
+        org = profile["organisation_number"]
+        ann = annotations.get(org, {})
+        for key in ("evaluation_split", "sample_slice", "website_seed_source", "website_seed_proof"):
+            if key in ann:
+                profile[key] = ann[key]
+        seed = seeds_by_org.get(org) or (ann if ann.get("website_seed_source") else None)
+        if not profile.get("website") and seed and seed.get("website"):
+            profile["website"] = str(seed["website"]).strip()
+            profile["website_seed_source"] = seed.get("website_seed_source", "independently_verified_exact_entity")
+            profile["website_seed_proof"] = seed.get("website_seed_proof") or {
+                "proof_url": str(seed.get("proof_url") or ""),
+                "proof": str(seed.get("proof") or ""),
+            }
     requested_modules = [item.strip() for item in args.modules.split(",") if item.strip()]
     fetch_modules = set(requested_modules) - {"registry", "accounting_obligation", "website"}
     operations = {"requests": 0, "bytes": 0, "latencies_ms": []}
@@ -59,6 +76,15 @@ def main() -> None:
     def enrich(profile: dict) -> tuple[dict, dict]:
         records, metrics = fetch_official_modules(profile["organisation_number"], fetch_modules)
         profile["evidence"].update(records)
+        live_record = records.get("registry_live") or {}
+        live_value = live_record.get("value") or {}
+        if live_value.get("name"):
+            profile["name"] = profile.get("name") or live_value.get("name")
+        if live_value.get("legal_form"):
+            profile["legal_form"] = profile.get("legal_form") or live_value.get("legal_form")
+        if live_value.get("deleted") or live_value.get("slettedato"):
+            profile["deleted"] = True
+            profile["slettedato"] = live_value.get("slettedato")
         website_metrics = {"requests": 0, "bytes": 0, "latencies_ms": []}
         if "website" in requested_modules:
             website_record, website_metrics = fetch_website(profile.get("website"))

@@ -27,13 +27,13 @@ from norway_company_agent.external_footprint import aggregate_footprint, publish
 from norway_company_agent.external_tasks import plan_external_tasks  # noqa: E402
 from norway_company_agent.external_control import development_score, run_company_control, strategy_order  # noqa: E402
 from norway_company_agent.identity import apply_website_identity_gate, assess_social_identity, assess_website_identity  # noqa: E402
-from norway_company_agent.website import _extraction_state, _priority_links, _social_links, assert_public_url, normalize_homepage, normalize_social_url, structured_social_links  # noqa: E402
-from norway_company_agent.batch import evidence_terminal_state, profile_complete_for_modules, read_organisation_inputs, terminal_envelope, validate_envelopes  # noqa: E402
+from norway_company_agent.website import _extraction_state, _priority_links, _social_links, assert_public_url, fetch_website, normalize_homepage, normalize_social_url, structured_social_links  # noqa: E402
+from norway_company_agent.batch import evidence_terminal_state, profile_complete_for_modules, profiles_from_bulk, read_organisation_inputs, terminal_envelope, validate_envelopes  # noqa: E402
 from norway_company_agent.snapshots import SnapshotFetcher  # noqa: E402
 from bs4 import BeautifulSoup  # noqa: E402
 from scripts.build_prototype import compact as compact_prototype, qualification_copy  # noqa: E402
 from scripts.run_brave_discovery import brave_search  # noqa: E402
-from scripts.run_annual_report_workforce_connector import extract_candidate, needs_ocr  # noqa: E402
+from scripts.run_annual_report_workforce_connector import collect as workforce_collect, extract_candidate, needs_ocr  # noqa: E402
 from scripts.normalize_google_maps_results import candidate_score  # noqa: E402
 from scripts.run_scrapy_websites import terminal_events_for_run  # noqa: E402
 from scripts.run_sentiment_model import MODEL_REVISION, normalize_generated_label  # noqa: E402
@@ -1329,6 +1329,417 @@ class VerifiedSiteSeedTests(unittest.TestCase):
             failed = subprocess.run(command, capture_output=True, text=True)
             self.assertNotEqual(failed.returncode, 0)
             self.assertIn("unknown organisations", failed.stderr)
+
+
+class WebsiteDiscoverySequenceTests(unittest.TestCase):
+    def test_missing_website_returns_not_found_and_ungated(self):
+        record, metrics = fetch_website(None)
+        self.assertEqual(record["status"], "not_found")
+        profile = {"organisation_number": "923609016", "name": "Missing Site AS"}
+        gated = apply_website_identity_gate(profile, record)
+        self.assertIsNone(gated["assessment"])
+        self.assertEqual(gated["quarantined_social_links"], 0)
+        self.assertEqual(gated["website"]["status"], "not_found")
+
+    def test_failed_fetch_error_handling(self):
+        import urllib.error
+        with patch("urllib.request.OpenerDirector.open", side_effect=urllib.error.HTTPError("https://example.no", 404, "Not Found", {}, None)):
+            with patch("norway_company_agent.website._robots_allowed", return_value=True):
+                record, _ = fetch_website("https://example.no")
+                self.assertEqual(record["status"], "not_found")
+                gated = apply_website_identity_gate({"organisation_number": "123456789", "name": "Test AS"}, record)
+                self.assertIsNone(gated["assessment"])
+
+        with patch("urllib.request.OpenerDirector.open", side_effect=urllib.error.URLError("DNS resolution failed")):
+            with patch("norway_company_agent.website._robots_allowed", return_value=True):
+                record, _ = fetch_website("https://example.no")
+                self.assertEqual(record["status"], "source_error")
+                gated = apply_website_identity_gate({"organisation_number": "123456789", "name": "Test AS"}, record)
+                self.assertIsNone(gated["assessment"])
+
+    def test_valid_verified_site_assesses_exact(self):
+        profile = {"organisation_number": "923609016", "name": "Fjord Seafood AS"}
+        website = evidence(
+            "website", "available", "company_site", "https://fjordseafood.no",
+            value={
+                "final_url": "https://fjordseafood.no/",
+                "title": "Fjord Seafood AS - Home",
+                "description": "Fjord Seafood AS org 923609016",
+                "main_text_excerpt": "Fjord Seafood AS delivers seafood worldwide.",
+                "social_links": [{"platform": "linkedin", "url": "https://linkedin.com/company/fjord-seafood"}],
+            }
+        )
+        gated = apply_website_identity_gate(profile, website)
+        self.assertIsNotNone(gated["assessment"])
+        self.assertTrue(gated["assessment"]["publishable"])
+        self.assertEqual(gated["assessment"]["status"], "exact")
+        self.assertEqual(len(gated["website"]["value"]["social_links"]), 1)
+        self.assertEqual(gated["quarantined_social_links"], 0)
+
+    def test_mismatched_company_identity_quarantines_and_denies_publishable(self):
+        profile = {"organisation_number": "923609016", "name": "Local Retail AS"}
+        website = evidence(
+            "website", "available", "company_site", "https://otherholding.no",
+            value={
+                "final_url": "https://otherholding.no/",
+                "title": "Other Holding ASA",
+                "description": "Holding group",
+                "main_text_excerpt": "We invest in local shops across the nation.",
+                "social_links": [{"platform": "linkedin", "url": "https://linkedin.com/company/otherholding"}],
+            }
+        )
+        gated = apply_website_identity_gate(profile, website)
+        self.assertIsNotNone(gated["assessment"])
+        self.assertFalse(gated["assessment"]["publishable"])
+        self.assertNotEqual(gated["assessment"]["status"], "exact")
+        self.assertEqual(gated["website"]["value"]["social_links"], [])
+        self.assertEqual(gated["quarantined_social_links"], 1)
+
+    def test_read_organisation_inputs_preserves_seed_annotations(self):
+        with tempfile.TemporaryDirectory() as directory:
+            p = Path(directory) / "inputs.jsonl"
+            p.write_text(json.dumps({
+                "organisation_number": "923609016",
+                "website": "https://seed.example.no",
+                "website_seed_source": "verified_registry_directory",
+                "website_seed_proof": "matched_brreg_record",
+            }) + "\n", encoding="utf-8")
+            inputs = read_organisation_inputs(p)
+            self.assertEqual(len(inputs), 1)
+            item = inputs[0]
+            self.assertEqual(item["organisation_number"], "923609016")
+            self.assertEqual(item["website"], "https://seed.example.no")
+            self.assertEqual(item["website_seed_source"], "verified_registry_directory")
+            self.assertEqual(item["website_seed_proof"], "matched_brreg_record")
+
+    def test_apply_identity_gate_script_deterministic_and_repeatable(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as directory:
+            p = Path(directory) / "profiles.jsonl"
+            row = {
+                "organisation_number": "923609016",
+                "name": "Fjord Seafood AS",
+                "evidence": {
+                    "website": evidence(
+                        "website", "available", "company_site", "https://fjordseafood.no",
+                        value={
+                            "final_url": "https://fjordseafood.no/",
+                            "title": "Fjord Seafood AS",
+                            "main_text_excerpt": "Fjord Seafood AS",
+                            "social_links": [{"platform": "linkedin", "url": "https://linkedin.com/company/fjord-seafood"}],
+                        }
+                    )
+                }
+            }
+            p.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            cmd = [sys.executable, str(ROOT / "scripts" / "apply_identity_gate.py"), "--input", str(p)]
+            res1 = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            content1 = p.read_text(encoding="utf-8")
+            res2 = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            content2 = p.read_text(encoding="utf-8")
+            self.assertEqual(content1, content2)
+            parsed = json.loads(content1.strip())
+            self.assertTrue(parsed["evidence"]["website"]["value"]["identity_assessment"]["publishable"])
+
+
+class CompanySiteActivityIntegrationTests(unittest.TestCase):
+    def test_company_site_activity_schema_and_gates(self):
+        profile = {
+            "organisation_number": "923609016",
+            "name": "Fjord Seafood AS",
+            "evidence": {
+                "website": evidence(
+                    "website", "available", "company_site", "https://fjordseafood.no",
+                    retrieved_at="2026-08-23T00:00:00Z",
+                    value={
+                        "final_url": "https://fjordseafood.no/",
+                        "content_sha256": "c" * 64,
+                        "identity_assessment": {"publishable": True, "status": "exact", "score": 1.0},
+                        "pages": [{"url": "https://fjordseafood.no/", "title": "Home"}],
+                        "social_links": [{"platform": "linkedin", "url": "https://linkedin.com/company/fjord-seafood"}],
+                    }
+                )
+            }
+        }
+        item = site_activity_observation(profile)
+        self.assertIsNotNone(item)
+        self.assertEqual(validate_observation(item), [])
+        self.assertTrue(publishable_observation(item))
+        self.assertEqual(item["exact_entity"], True)
+        self.assertEqual(item["rights_status"], "approved")
+        self.assertEqual(item["acquisition_mode"], "permitted_public_page")
+
+    def test_company_owned_content_proves_activity_not_independent_sentiment(self):
+        profile = {
+            "organisation_number": "923609016",
+            "name": "Fjord Seafood AS",
+            "evidence": {
+                "website": evidence(
+                    "website", "available", "company_site", "https://fjordseafood.no",
+                    retrieved_at="2026-08-23T00:00:00Z",
+                    value={
+                        "final_url": "https://fjordseafood.no/",
+                        "content_sha256": "d" * 64,
+                        "identity_assessment": {"publishable": True, "status": "exact", "score": 1.0},
+                        "pages": [{"url": "https://fjordseafood.no/"}],
+                        "social_links": [],
+                    }
+                )
+            }
+        }
+        item = site_activity_observation(profile)
+        self.assertIsNotNone(item)
+        self.assertIsNone(item.get("sentiment_label"))
+
+        bad_item = dict(item)
+        bad_item["sentiment_label"] = "positive"
+        bad_item["sentiment_model_version"] = "test-v1"
+        reasons = validate_observation(bad_item)
+        self.assertIn("sentiment source is not independent", reasons)
+        self.assertFalse(publishable_observation(bad_item))
+
+        footprint = aggregate_footprint([item], as_of="2026-08-23T12:00:00Z")
+        self.assertEqual(footprint["status"], "available")
+        self.assertEqual(footprint["sentiment"]["status"], "abstain")
+        self.assertIsNone(footprint["sentiment"]["score_0_100"])
+
+
+class AnnualReportWorkforceConnectorTests(unittest.TestCase):
+    def test_collect_workforce_from_cached_pdf_with_exact_entity(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cache_dir = Path(temp_dir)
+            pdf_file = cache_dir / "923609016-2024.pdf"
+            pdf_file.write_bytes(b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n")
+
+            profile = {
+                "organisation_number": "923609016",
+                "name": "Nordic Marine AS",
+                "evidence": {
+                    "financial_history": {
+                        "value": {
+                            "pdfs": [{"year": "2024", "url": "https://api.brreg.no/pdf/923609016/2024"}]
+                        }
+                    }
+                }
+            }
+
+            mock_page = Mock()
+            mock_page.extract_text.return_value = "Nordic Marine AS org 923609016\nSelskapet har 5 ansatte i 2024."
+            with patch("scripts.run_annual_report_workforce_connector.PdfReader") as MockReader:
+                MockReader.return_value.pages = [mock_page]
+                obs, status = workforce_collect(profile, cache_dir, ocr_pages=0, ocr_dpi=72)
+                self.assertIsNotNone(obs)
+                self.assertEqual(status["status"], "accepted")
+                self.assertTrue(status["cache_hit"])
+                self.assertEqual(status["workforce_value"], 5)
+                self.assertEqual(validate_observation(obs), [])
+                self.assertTrue(publishable_observation(obs))
+                self.assertEqual(obs["exact_entity"], True)
+                self.assertEqual(obs["acquisition_mode"], "official_api")
+                self.assertEqual(obs["rights_status"], "approved")
+
+    def test_collect_rejects_when_org_number_missing_from_pdf(self):
+        from unittest.mock import Mock
+        with tempfile.TemporaryDirectory() as temp_dir:
+            cache_dir = Path(temp_dir)
+            pdf_file = cache_dir / "923609016-2024.pdf"
+            pdf_file.write_bytes(b"%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF\n")
+
+            profile = {
+                "organisation_number": "923609016",
+                "name": "Nordic Marine AS",
+                "evidence": {
+                    "financial_history": {
+                        "value": {
+                            "pdfs": [{"year": "2024", "url": "https://api.brreg.no/pdf/923609016/2024"}]
+                        }
+                    }
+                }
+            }
+
+            mock_page = Mock()
+            mock_page.extract_text.return_value = "Other Company AS org 999999999\nSelskapet har 5 ansatte."
+            with patch("scripts.run_annual_report_workforce_connector.PdfReader") as MockReader:
+                MockReader.return_value.pages = [mock_page]
+                obs, status = workforce_collect(profile, cache_dir, ocr_pages=0, ocr_dpi=72)
+                self.assertIsNone(obs)
+                self.assertEqual(status["status"], "organisation_number_not_in_pdf")
+
+
+class EndToEndPipelineTests(unittest.TestCase):
+    def test_end_to_end_batch_with_verified_seeds_and_envelopes(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            manifest = root / "inputs.jsonl"
+            manifest.write_text(
+                json.dumps({
+                    "organisation_number": "923609016",
+                    "name": "Fjord Seafood AS",
+                    "website": "https://fjordseafood.no",
+                    "website_seed_source": "verified_registry_directory",
+                    "website_seed_proof": "matched_brreg_record",
+                }) + "\n" +
+                json.dumps({
+                    "organisation_number": "987654321",
+                    "name": "No Site AS",
+                }) + "\n",
+                encoding="utf-8",
+            )
+
+            mock_site = evidence(
+                "website", "available", "company_site", "https://fjordseafood.no",
+                retrieved_at="2026-08-23T00:00:00Z",
+                value={
+                    "final_url": "https://fjordseafood.no/",
+                    "title": "Fjord Seafood AS",
+                    "content_sha256": "e" * 64,
+                    "main_text_excerpt": "Fjord Seafood AS org 923609016",
+                    "social_links": [{"platform": "linkedin", "url": "https://linkedin.com/company/fjord-seafood"}],
+                    "pages": [{"url": "https://fjordseafood.no/", "title": "Fjord Seafood AS", "content_sha256": "e" * 64}],
+                }
+            )
+
+            inputs = read_organisation_inputs(manifest)
+            self.assertEqual(len(inputs), 2)
+            self.assertEqual(inputs[0]["website"], "https://fjordseafood.no")
+            self.assertIsNone(inputs[1].get("website"))
+
+            p1 = {
+                "organisation_number": "923609016",
+                "name": "Fjord Seafood AS",
+                "website": inputs[0]["website"],
+                "evidence": {
+                    "registry_live": evidence("registry_live", "available", "brreg_api", "https://data.brreg.no", value={"organisation_number": "923609016"}),
+                    "website": apply_website_identity_gate({"organisation_number": "923609016", "name": "Fjord Seafood AS"}, mock_site)["website"],
+                }
+            }
+            p2 = {
+                "organisation_number": "987654321",
+                "name": "No Site AS",
+                "website": None,
+                "evidence": {
+                    "registry_live": evidence("registry_live", "available", "brreg_api", "https://data.brreg.no", value={"organisation_number": "987654321"}),
+                    "website": evidence("website", "not_found", "registry_linked_company_website", "https://data.brreg.no"),
+                }
+            }
+            ordered = [p1, p2]
+            modules = ["registry_live", "website"]
+            envelopes = [
+                terminal_envelope(p, run_id="test-run", modules=modules, started_at="2026-08-23T00:00:00Z", completed_at="2026-08-23T00:00:01Z")
+                for p in ordered
+            ]
+            validation = validate_envelopes(envelopes, 2)
+            self.assertTrue(validation["passed"])
+            self.assertTrue(validation["checks"]["zero_silent_drops"])
+            self.assertTrue(validation["checks"]["exact_expected_count"])
+
+            obs1 = site_activity_observation(p1)
+            self.assertIsNotNone(obs1)
+            self.assertTrue(publishable_observation(obs1))
+
+            obs2 = site_activity_observation(p2)
+            self.assertIsNone(obs2)
+
+
+
+class DeletedEntityAndManifestTests(unittest.TestCase):
+    def test_profiles_from_bulk_handles_absent_entities_gracefully(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            csv_path = Path(temp_dir) / "registry.csv"
+            with gzip.open(csv_path, "wt", encoding="utf-8-sig", newline="") as gz:
+                gz.write("organisasjonsnummer;navn;organisasjonsform.kode;konkurs;underAvvikling;sisteInnsendteAarsregnskap\n")
+                gz.write("911111111;ACTIVE AS;AS;false;false;2025\n")
+
+            # With allow_absent=True (default), absent entity gets not_found evidence without throwing ValueError
+            profiles, metadata = profiles_from_bulk(csv_path, ["911111111", "922222222"], allow_absent=True)
+            self.assertEqual(len(profiles), 2)
+            self.assertEqual(profiles[0]["organisation_number"], "911111111")
+            self.assertEqual(profiles[0]["evidence"]["registry"]["status"], "available")
+            self.assertEqual(profiles[1]["organisation_number"], "922222222")
+            self.assertEqual(profiles[1]["evidence"]["registry"]["status"], "not_found")
+            self.assertEqual(profiles[1]["evidence"]["accounting_obligation"]["status"], "not_applicable")
+
+            # With allow_absent=False, raises ValueError
+            with self.assertRaises(ValueError):
+                profiles_from_bulk(csv_path, ["911111111", "922222222"], allow_absent=False)
+
+    def test_deleted_entity_enrichment_and_terminal_envelope(self):
+        # A deleted/deregistered entity absent from bulk with live slettedato
+        deleted_profile = {
+            "organisation_number": "928987728",
+            "name": "DEREGISTERED AS",
+            "deleted": True,
+            "slettedato": "2026-08-24",
+            "evidence": {
+                "registry": evidence("registry", "not_found", "brreg_bulk", "https://data.brreg.no/bulk", note="Entity absent from active bulk snapshot"),
+                "accounting_obligation": evidence("accounting_obligation", "not_applicable", "brreg_bulk", "https://data.brreg.no/bulk", note="Entity absent from active bulk snapshot"),
+                "registry_live": evidence("registry_live", "available", "brreg_api", "https://data.brreg.no/enhetsregisteret/api/enheter/928987728", value={"organisation_number": "928987728", "name": "DEREGISTERED AS", "deleted": True, "slettedato": "2026-08-24"}),
+                "roles": evidence("roles", "not_found", "brreg_api", "https://data.brreg.no/enhetsregisteret/api/enheter/928987728/roller"),
+                "financials": evidence("financials", "not_found", "brreg_api", "https://data.brreg.no/regnskapsregisteret/regnskap/928987728"),
+                "financial_history": evidence("financial_history", "not_found", "brreg_api", "https://data.brreg.no/regnskapsregisteret/regnskap/928987728"),
+                "website": evidence("website", "not_found", "registry_linked_company_website", "https://data.brreg.no"),
+            },
+        }
+        envelope = terminal_envelope(
+            deleted_profile,
+            run_id="test-deleted-run",
+            modules=["registry", "registry_live", "roles", "financials", "financial_history", "accounting_obligation", "website"],
+            started_at="2026-10-17T00:00:00Z",
+            completed_at="2026-10-17T00:00:01Z",
+        )
+        self.assertEqual(envelope["organisation_number"], "928987728")
+        self.assertEqual(envelope["state"], "complete")
+        self.assertIn("modules", envelope)
+        self.assertEqual(envelope["modules"]["registry"]["state"], "not_found")
+        self.assertEqual(envelope["modules"]["registry_live"]["state"], "complete")
+        self.assertEqual(envelope["modules"]["financials"]["state"], "not_found")
+        # Ensure zero fabrication of observations
+        self.assertIsNone(site_activity_observation(deleted_profile))
+
+    def test_validate_envelopes_with_active_and_deleted_mix(self):
+        active_prof = {
+            "organisation_number": "911111111",
+            "evidence": {
+                "registry": evidence("registry", "available", "brreg_bulk", "https://example.test", value={"navn": "ACTIVE AS"}),
+                "website": evidence("website", "available", "company_site", "https://example.test", value={"final_url": "https://example.test"}),
+            },
+        }
+        deleted_prof = {
+            "organisation_number": "922222222",
+            "deleted": True,
+            "slettedato": "2026-08-24",
+            "evidence": {
+                "registry": evidence("registry", "not_found", "brreg_bulk", "https://example.test"),
+                "website": evidence("website", "not_found", "registry_linked_company_website", "https://example.test"),
+            },
+        }
+        modules = ["registry", "website"]
+        envs = [
+            terminal_envelope(active_prof, run_id="r1", modules=modules, started_at="2026-10-17T00:00:00Z", completed_at="2026-10-17T00:00:01Z"),
+            terminal_envelope(deleted_prof, run_id="r1", modules=modules, started_at="2026-10-17T00:00:00Z", completed_at="2026-10-17T00:00:01Z"),
+        ]
+        validation = validate_envelopes(envs, 2)
+        self.assertTrue(validation["passed"])
+        self.assertTrue(validation["checks"]["exact_expected_count"])
+        self.assertTrue(validation["checks"]["unique_organisation_numbers"])
+        self.assertTrue(validation["checks"]["zero_silent_drops"])
+
+    def test_active_replacement_manifest_structure_and_uniqueness(self):
+        manifest_path = ROOT / "entry-companies-active-1000.jsonl"
+        metadata_path = ROOT / "entry-companies-active-1000-metadata.json"
+        if manifest_path.exists() and metadata_path.exists():
+            inputs = read_organisation_inputs(manifest_path)
+            self.assertEqual(len(inputs), 1000)
+            orgs = [r["organisation_number"] for r in inputs]
+            self.assertEqual(len(set(orgs)), 1000)
+            for org in orgs:
+                self.assertEqual(len(org), 9)
+                self.assertTrue(org.isdigit())
+            meta = json.loads(metadata_path.read_text(encoding="utf-8"))
+            self.assertEqual(meta["total_count"], 1000)
+            self.assertEqual(meta["retained_active_count"], 994)
+            self.assertEqual(meta["replacement_count"], 6)
 
 
 if __name__ == "__main__":

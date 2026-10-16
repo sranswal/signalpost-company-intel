@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from .evidence import evidence, utc_now
-from .official import accounting_obligation_assessment
+from .official import ACCOUNTING_OBLIGATION_SOURCE, accounting_obligation_assessment
 from .sampling import iter_bulk
 
 
@@ -41,7 +41,7 @@ def read_organisation_inputs(path: str | Path) -> list[dict[str, Any]]:
             raise ValueError(f"Invalid Norwegian organisation number: {value!r}")
         record = {"organisation_number": org}
         if isinstance(value, dict):
-            for key in ("evaluation_split", "sample_slice"):
+            for key in ("evaluation_split", "sample_slice", "website", "website_seed_source", "website_seed_proof"):
                 if value.get(key) is not None:
                     record[key] = value[key]
         records.append(record)
@@ -55,7 +55,12 @@ def read_organisation_numbers(path: str | Path) -> list[str]:
     return [record["organisation_number"] for record in read_organisation_inputs(path)]
 
 
-def profiles_from_bulk(path: str | Path, organisation_numbers: Iterable[str]) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def profiles_from_bulk(
+    path: str | Path,
+    organisation_numbers: Iterable[str],
+    *,
+    allow_absent: bool = True,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     requested = list(organisation_numbers)
     wanted = set(requested)
     snapshot_sha256 = hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -85,13 +90,52 @@ def profiles_from_bulk(path: str | Path, organisation_numbers: Iterable[str]) ->
         if len(found) == len(wanted):
             break
     missing = [org for org in requested if org not in found]
-    if missing:
+    if missing and not allow_absent:
         raise ValueError(f"Organisation numbers absent from registry snapshot: {missing[:10]}")
+    for org in missing:
+        found[org] = {
+            "organisation_number": org,
+            "name": None,
+            "legal_form": None,
+            "employees": None,
+            "bankrupt": False,
+            "liquidating": False,
+            "municipality": None,
+            "municipality_number": None,
+            "industry_code": None,
+            "industry_label": None,
+            "website": None,
+            "latest_submitted_accounts": None,
+            "absent_from_bulk_snapshot": True,
+            "evidence": {
+                "registry": evidence(
+                    "registry",
+                    "not_found",
+                    "official_registry_bulk",
+                    "https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv",
+                    value=None,
+                    retrieved_at=retrieved_at,
+                    content_sha256=snapshot_sha256,
+                    source_row_key=org,
+                    note="Organisation number absent from active registry bulk snapshot; requires live registry verification",
+                ),
+                "accounting_obligation": evidence(
+                    "accounting_obligation",
+                    "not_applicable",
+                    "official_rule_interpretation",
+                    ACCOUNTING_OBLIGATION_SOURCE,
+                    value={"classification": "not_applicable", "reason": "Entity absent from active registry bulk snapshot"},
+                ),
+            },
+        }
     return [found[org] for org in requested], {
         "registry_snapshot_sha256": snapshot_sha256,
         "registry_rows_scanned": scanned,
         "requested": len(requested),
         "selected": len(found),
+        "active_bulk_found": len(requested) - len(missing),
+        "absent_from_bulk": len(missing),
+        "absent_organisation_numbers": missing,
     }
 
 
