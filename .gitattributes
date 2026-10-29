@@ -1,0 +1,2 @@
+# Preserve audited snapshots and their SHA-256 hashes across Windows/Linux clones.
+submission/v2/** -text
