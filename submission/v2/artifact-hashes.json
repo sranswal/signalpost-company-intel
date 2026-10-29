@@ -1,0 +1,90 @@
+{
+  "activity-report.json": {
+    "sha256": "e12f52371f62abdb3914a59bfd2a4313ea2ffbdc71fbbd3a4a245c668f51ebed",
+    "bytes": 219
+  },
+  "activity.jsonl": {
+    "sha256": "d9574a127b36892fd474ad281af60ba440c8e07102d9b7a85152c01302ad40e7",
+    "bytes": 16681
+  },
+  "baseline-report.json": {
+    "sha256": "ed53f59d285cd4e0230e158be12da288b8def34adebe380a43dac0a3e09aaf09",
+    "bytes": 1351
+  },
+  "changes.jsonl": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "clean-install-report.json": {
+    "sha256": "a3de26e1437db247120944e0722c1dcdb42a425438560546d9dcb5293ef8e5fd",
+    "bytes": 577
+  },
+  "dependency-inventory.json": {
+    "sha256": "3196234f865c38c9a74c1fe71c93f5595ce0b29791f355a5264f5c46fe73ec8f",
+    "bytes": 7329
+  },
+  "envelopes.jsonl": {
+    "sha256": "aca89a44d081f5d3320daa8a997d823e502198b2a1567bd957b2ac1cc8038303",
+    "bytes": 5481592
+  },
+  "evidence-review.json": {
+    "sha256": "ae38f28a25ba588f4a55c841d5726f0a0df9f1715c8423f22ecad7ff9f5115de",
+    "bytes": 23675
+  },
+  "idempotence-report.json": {
+    "sha256": "bbe221b3c184e16693cb8c26b1d606b7d3af63b9fdcac0f42c337537b6019ceb",
+    "bytes": 1350
+  },
+  "news-report.json": {
+    "sha256": "75ed13f71fdf761092125b2f009665d9eb41a4335f376ba79f708bd35eb5197f",
+    "bytes": 228
+  },
+  "news.jsonl": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "previous-profiles.jsonl": {
+    "sha256": "48c21f0402258b0f0dfbe66d6b2bdcb49a828bc596e7e83c724d76ad26be24a7",
+    "bytes": 1516671
+  },
+  "profiles.jsonl": {
+    "sha256": "d6e673b7096dbb8da4c63bfe8a958d19f53273038984dd361a19c59c2512609e",
+    "bytes": 2948431
+  },
+  "README.md": {
+    "sha256": "7421951e0d5f351764a1cb77e68d821600c264029f1fc935166237c744cb90b3",
+    "bytes": 2596
+  },
+  "refresh-replay.json": {
+    "sha256": "04b2adf2e813c8a46cdbbc1e8b389b1813e64fff3031ebfeec6f968bd51f77e7",
+    "bytes": 2551
+  },
+  "showcase-preview.png": {
+    "sha256": "5676123397ca43efba0e5aaa7571695c30744ac0e6f077904b41a865d228e0ed",
+    "bytes": 56058
+  },
+  "showcase.html": {
+    "sha256": "2436449f129e727d27730c7480cfd8b9343a828d80954c00ba49cc546214fac5",
+    "bytes": 979435
+  },
+  "smoke-companies.jsonl": {
+    "sha256": "3ac53c4ca76a71f355d94bf371fbfd2c48d6745b263b8997b562190e4aa4d095",
+    "bytes": 10960
+  },
+  "smoke-companies.metadata.json": {
+    "sha256": "46d356da4f2ddc3722e924bf20d8b5ba31b105572130d742785a8342a6e0e41b",
+    "bytes": 428
+  },
+  "smoke-report.json": {
+    "sha256": "b28f7e4ce84679f264308d8660973cc7caa8d1506b9dda859061b27e7e13cc8c",
+    "bytes": 1351
+  },
+  "tests.xml": {
+    "sha256": "7dea25dfccf9fa53b358697c380e7dbf58c5e6df3ad58c1500a296ba55d84faa",
+    "bytes": 18152
+  },
+  "validation-report.json": {
+    "sha256": "93c5debfef81e88906e14c6ca5ab1c015c4049b79045a11464b999e1aad754ef",
+    "bytes": 1284
+  }
+}

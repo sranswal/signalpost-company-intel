@@ -1,0 +1,55 @@
+{
+  "run_id": "audit-v2-fresh-100",
+  "started_at": "2026-10-29T20:28:04.539057Z",
+  "completed_at": "2026-10-29T20:30:53.903292Z",
+  "expected_count": 100,
+  "emitted_envelopes": 100,
+  "resumed_profiles": 0,
+  "profiles_fetched_this_run": 100,
+  "modules": [
+    "registry",
+    "accounting_obligation",
+    "registry_live",
+    "financials",
+    "roles",
+    "group",
+    "locations",
+    "website"
+  ],
+  "registry": {
+    "registry_snapshot_sha256": "3c893221798722bab5ba19ede17cff395cc790b0d18a097d66c1e29e082532ad",
+    "registry_rows_scanned": 1162135,
+    "requested": 100,
+    "selected": 100,
+    "active_bulk_found": 100,
+    "absent_from_bulk": 0,
+    "absent_organisation_numbers": []
+  },
+  "operations": {
+    "requests": 846,
+    "bytes": 28662228,
+    "p50_ms": 875,
+    "p95_ms": 2687
+  },
+  "runtime_ms": 169656,
+  "company_runtime": {
+    "n": 100,
+    "p50_ms": 7780.0,
+    "p95_ms": 19437.0,
+    "max_ms": 77406
+  },
+  "third_party_cost_usd": 0,
+  "worker_failures": 0,
+  "changes": 0,
+  "validation": {
+    "passed": true,
+    "checks": {
+      "exact_expected_count": true,
+      "unique_organisation_numbers": true,
+      "all_entity_states_terminal": true,
+      "all_module_states_terminal": true,
+      "zero_silent_drops": true
+    },
+    "invalid_states": []
+  }
+}

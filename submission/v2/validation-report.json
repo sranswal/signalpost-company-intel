@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "contract": {
+    "passed": true,
+    "checks": {
+      "exact_expected_count": true,
+      "unique_organisation_numbers": true,
+      "all_entity_states_terminal": true,
+      "all_module_states_terminal": true,
+      "zero_silent_drops": true
+    },
+    "invalid_states": []
+  },
+  "errors": [],
+  "companies": 100,
+  "available_claim_counts": {
+    "registry": 100,
+    "accounting_obligation": 100,
+    "registry_live": 100,
+    "annual_accounts": 284,
+    "financial_comparison": 93,
+    "roles": 100,
+    "locations": 100,
+    "official_website": 18,
+    "business_description": 14,
+    "group": 9,
+    "social_account": 9
+  },
+  "same_snapshot_changes": 0,
+  "freshness": {
+    "current": 100
+  },
+  "identity_abstentions": 33,
+  "measurement_boundary": "Structural/provenance checks and same-snapshot replay; not independently labelled real-world precision/recall",
+  "artifact_sha256": {
+    "submission/v2/smoke-companies.jsonl": "3ac53c4ca76a71f355d94bf371fbfd2c48d6745b263b8997b562190e4aa4d095",
+    "submission/v2/envelopes.jsonl": "aca89a44d081f5d3320daa8a997d823e502198b2a1567bd957b2ac1cc8038303",
+    "submission/v2/profiles.jsonl": "d6e673b7096dbb8da4c63bfe8a958d19f53273038984dd361a19c59c2512609e"
+  }
+}

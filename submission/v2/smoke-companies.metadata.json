@@ -1,0 +1,10 @@
+{
+  "seed": "signalpost-audit-v2-20261030",
+  "count": 100,
+  "with_registry_website": 70,
+  "excluded": 1006,
+  "overlap_with_excluded": 0,
+  "universe_sha256": "1c89710e5b01f8617e86d09fbdff4a52f2f8dbbba297e74f7164b5984f5a0384",
+  "manifest_sha256": "3ac53c4ca76a71f355d94bf371fbfd2c48d6745b263b8997b562190e4aa4d095",
+  "purpose": "Stratified operational smoke; not an unbiased coverage estimate or official score"
+}

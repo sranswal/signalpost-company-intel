@@ -1,0 +1,561 @@
+{
+  "reviewer": "Codex review of captured source evidence; not independent human-labelled ground truth",
+  "review_date_local": "2026-10-30",
+  "scope": "All published website and social-link claims; all quarantined available websites listed for review; financial year/scope checks for the whole batch",
+  "published_website_reviews": [
+    {
+      "organisation_number": "934496329",
+      "legal_name": "STIFTELSEN VINTERLEIREN",
+      "source_url": "https://vinterleiren.no/",
+      "content_sha256": "9847bbfa7e737394579726bfbdd34ffa2679c9c89c034ec9b22811de7e573141",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full foundation name in title and winter-camp content; donor foundation mention is not treated as ownership."
+    },
+    {
+      "organisation_number": "916321708",
+      "legal_name": "NASJONALGJERDE AS",
+      "source_url": "https://www.nasjonalgjerde.no/",
+      "content_sha256": "ecd0d02f9c3374a9f0ef3aa6b6f467c1d7cc1fc88e4831cd87d8d78f4e340442",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full company name in title and fencing business content. Legacy page encoding is imperfect; no social claims published."
+    },
+    {
+      "organisation_number": "981248422",
+      "legal_name": "BSA SHIPPING AGENCIES ANS",
+      "source_url": "https://www.bsaship.com/",
+      "content_sha256": "a39ddc9f96031dec6f853ca7cf866e5d20d9463fbb8367619cebadb0e53dc81a",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full legal name in footer and title segment. Elegant Themes/WordPress attribution is excluded."
+    },
+    {
+      "organisation_number": "948480468",
+      "legal_name": "FOLLDAL ELEKTRO AS",
+      "source_url": "https://www.folldalelektro.no/",
+      "content_sha256": "9cee85a69979b11a83fc1ef63f0d78434f6df1c009851dd4dde784895a1b176e",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full legal name, Folldal operating address and electrical-services content. Facebook handle matches the full normalized company name."
+    },
+    {
+      "organisation_number": "994110756",
+      "legal_name": "MOTTY AS",
+      "source_url": "https://www.motty.no/",
+      "content_sha256": "96c5b0eb60873836dfdc6adb9f43382c82cfab571ff23ad01c1086f6e7e8a429",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Own organisation number and company branding. Social aliases that do not exactly match are withheld."
+    },
+    {
+      "organisation_number": "919624833",
+      "legal_name": "MØBEL & TEPPESERVICE AS",
+      "source_url": "https://mobelteppeservice.no/",
+      "content_sha256": "5e998e0791772b36910d7b99e7bd25ce64ce33a0370b8941977f5d34c6da7024",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full legal-name title segment and matching cleaning-services business content."
+    },
+    {
+      "organisation_number": "970993258",
+      "legal_name": "STORKJØKKENUTVIKLING AS",
+      "source_url": "https://www.storkjokkenutvikling.no/",
+      "content_sha256": "f4ff29a559291d742553001e2d630ae60d20772ad57576d8cc888282dfa7503e",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Own legal name in footer and company service description. Agency attribution is not a company account."
+    },
+    {
+      "organisation_number": "980545768",
+      "legal_name": "NARVIK GOLFKLUBB",
+      "source_url": "https://www.narvikgolf.no/",
+      "content_sha256": "90181c8f0e5ceca13b25eb2697d74180aa0e766e313650a9e072c33151af459d",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full golf-club title/footer and club address. Abbreviated Facebook alias is withheld."
+    },
+    {
+      "organisation_number": "916161387",
+      "legal_name": "FOODLAB AS",
+      "source_url": "https://www.foodlab.no/",
+      "content_sha256": "99c204692d671e03815103f4062021ea71e76995438793467dcdeb7f5fcc782e",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Own Foodlab AS legal footer and catering description; customer-company names are not identity evidence."
+    },
+    {
+      "organisation_number": "915407579",
+      "legal_name": "ADVOKAT ANNELI BENDIKSEN AS",
+      "source_url": "https://advokatbendiksen.no/",
+      "content_sha256": "5aed3270ff22ae5e99009498e60609bd4a848495f03ef87e9d6925bb2b59a072",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full lawyer/company name in title and matching personal-injury legal-service description."
+    },
+    {
+      "organisation_number": "991044639",
+      "legal_name": "OPG ANLEGG AS",
+      "source_url": "https://www.graving.no/",
+      "content_sha256": "d9e457e885356ef174f30021a8126af91663e653ed896ff817498b9cf3806f8b",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full company-name title and company contact email on the branded excavation website."
+    },
+    {
+      "organisation_number": "911406829",
+      "legal_name": "HAAKON ELLINGSEN AS",
+      "source_url": "https://www.haakonellingsen.no/",
+      "content_sha256": "c56af4428083c543a80d6eb19b0b1dee7cfbf6bb99bb7ddf7f9bca135ae0ea72",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full company name in title/footer and own office contacts. Numeric and suffixed social handles abstain."
+    },
+    {
+      "organisation_number": "935032644",
+      "legal_name": "ELE BUNADER AS",
+      "source_url": "https://www.elebunader.no/",
+      "content_sha256": "285e756491c84810b789fa7e03438fbc1070f50bd25d617a5c2b2382df3dc513",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Legal name and exact organisation number in footer. Published Instagram/TikTok handles match the full name."
+    },
+    {
+      "organisation_number": "918146865",
+      "legal_name": "FORFA AS",
+      "source_url": "https://www.forfa.no/",
+      "content_sha256": "7dcdc945105fb13d265ddac4bb52b9a83a4bbdc2e044f716aa329c0f88e81f00",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Own legal name, exact organisation number and address in footer. Publishing alias is withheld; exact LinkedIn handle remains."
+    },
+    {
+      "organisation_number": "910567489",
+      "legal_name": "OBED BEGRAVELSESBYRÅ AS",
+      "source_url": "https://www.obed.no/",
+      "content_sha256": "0f11e122d89312b1a86e56695d38700616ad19896e782f657e49afbbd7e0aec9",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Company name and funeral-services content. Dated homepage metadata is explicitly excluded from news."
+    },
+    {
+      "organisation_number": "848528722",
+      "legal_name": "LERSOLVEIEN BORETTSLAG",
+      "source_url": "https://stjerneblokkene.no/",
+      "content_sha256": "f0a83e194726cd41d7a58ee7184bf310177032cb4fa65a94a600b690c90f636b",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full housing-cooperative name in page title and board-post authorship; not attributed to a property manager."
+    },
+    {
+      "organisation_number": "912891690",
+      "legal_name": "AMP ISOLERING AS",
+      "source_url": "https://isolering.no/",
+      "content_sha256": "47592788502f71d34e2c9ecc8622443cec94d6ffacc14b0c35f4f0c1a0b33501",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full normalized company name in title/identity evidence and insulation-service content. Partial/suffixed handles are withheld."
+    },
+    {
+      "organisation_number": "986917616",
+      "legal_name": "LOTUS GRILL BAR AS",
+      "source_url": "https://www.lotusgrill.no/",
+      "content_sha256": "8a18a25e906576ec64c0d84aa46f660f3a9957de378c826f6f72a2a251c02aac",
+      "decision": "supported_by_captured_company_evidence",
+      "review_note": "Full normalized restaurant company name in title and matching restaurant/contact description."
+    }
+  ],
+  "published_social_reviews": [
+    {
+      "organisation_number": "948480468",
+      "platform": "facebook",
+      "url": "https://facebook.com/folldalelektro",
+      "review_basis": "Outbound link from reviewed company site plus full normalized legal-name handle; no direct platform-page verification"
+    },
+    {
+      "organisation_number": "970993258",
+      "platform": "facebook",
+      "url": "https://facebook.com/storkjokkenutvikling",
+      "review_basis": "Outbound link from reviewed company site plus full normalized legal-name handle; no direct platform-page verification"
+    },
+    {
+      "organisation_number": "916161387",
+      "platform": "linkedin",
+      "url": "https://linkedin.com/company/foodlab-as",
+      "review_basis": "Outbound link from reviewed company site plus full normalized legal-name handle; no direct platform-page verification"
+    },
+    {
+      "organisation_number": "991044639",
+      "platform": "facebook",
+      "url": "https://facebook.com/OPGanlegg",
+      "review_basis": "Outbound link from reviewed company site plus full normalized legal-name handle; no direct platform-page verification"
+    },
+    {
+      "organisation_number": "935032644",
+      "platform": "instagram",
+      "url": "https://instagram.com/elebunader",
+      "review_basis": "Outbound link from reviewed company site plus full normalized legal-name handle; no direct platform-page verification"
+    },
+    {
+      "organisation_number": "935032644",
+      "platform": "tiktok",
+      "url": "https://tiktok.com/@elebunader",
+      "review_basis": "Outbound link from reviewed company site plus full normalized legal-name handle; no direct platform-page verification"
+    },
+    {
+      "organisation_number": "918146865",
+      "platform": "linkedin",
+      "url": "https://linkedin.com/company/forfa-as",
+      "review_basis": "Outbound link from reviewed company site plus full normalized legal-name handle; no direct platform-page verification"
+    },
+    {
+      "organisation_number": "912891690",
+      "platform": "facebook",
+      "url": "https://facebook.com/AMPisolering",
+      "review_basis": "Outbound link from reviewed company site plus full normalized legal-name handle; no direct platform-page verification"
+    },
+    {
+      "organisation_number": "912891690",
+      "platform": "linkedin",
+      "url": "https://linkedin.com/company/amp-isolering-as",
+      "review_basis": "Outbound link from reviewed company site plus full normalized legal-name handle; no direct platform-page verification"
+    }
+  ],
+  "quarantined_available_sites": [
+    {
+      "organisation_number": "926015966",
+      "legal_name": "CCB ENERGY CARBONLINK AS",
+      "candidate_url": "https://ccb.no/",
+      "candidate_title": "Hjem — CCB",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "998070503",
+      "legal_name": "DAGEN FØR I MORGEN AS",
+      "candidate_url": "https://portfolio.adobe.com/missing",
+      "candidate_title": "Adobe Portfolio | Build your own personalized website",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "997297881",
+      "legal_name": "PROSPERA STIFTELSEN",
+      "candidate_url": "https://prosperastiftelsen.no/",
+      "candidate_title": "Hovedside - Prosperastiftelsen",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "931398806",
+      "legal_name": "VIDARSGT 11 AS",
+      "candidate_url": "https://www.phmforvaltning.no/",
+      "candidate_title": "Forside | PHM Forvaltning AS",
+      "decision": "withheld",
+      "reasons": [
+        "homepage identifies another organisation; subsidiary mentions do not prove site ownership"
+      ]
+    },
+    {
+      "organisation_number": "913090055",
+      "legal_name": "BARCODE 89 EIERSEKSJONSSAMEIE",
+      "candidate_url": "https://malling.no/",
+      "candidate_title": "Landets ledende rådgiver innen næringseiendom",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "994456008",
+      "legal_name": "KARVESVINGEN 2 AS",
+      "candidate_url": "https://hoegheiendom.no/",
+      "candidate_title": "Höegh Eiendom",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "946804606",
+      "legal_name": "SKEIENEMARKEN BORETTSLAG",
+      "candidate_url": "https://bate.no/",
+      "candidate_title": "For deg",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "986754199",
+      "legal_name": "VMS PORSGRUNN AS",
+      "candidate_url": "https://www.volvo.com/en/",
+      "candidate_title": "Welcome to Volvo",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "980347915",
+      "legal_name": "ØVRE ERVIK EIENDOM AS",
+      "candidate_url": "https://www.royaleiendom.no/",
+      "candidate_title": "Royal Eiendom AS Forside - www.royaleiendom.no Bergen",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "916162766",
+      "legal_name": "PROFILERINGSARTIKLER AS",
+      "candidate_url": "https://www.profileringsartikler.no/",
+      "candidate_title": "Firmagaver og reklameartikler - Profileringsartikler AS",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "880939882",
+      "legal_name": "BORETTSLAGET DALEHAUGEN 6 & 8",
+      "candidate_url": "https://www.usbl.no/",
+      "candidate_title": "Boligbyggelag, forretningsfører og boligutvikler | Usbl",
+      "decision": "withheld",
+      "reasons": [
+        "homepage identifies another organisation; subsidiary mentions do not prove site ownership"
+      ]
+    },
+    {
+      "organisation_number": "897194872",
+      "legal_name": "SAMEIET HAGEBY ALLÈ",
+      "candidate_url": "https://bonitas.no/",
+      "candidate_title": "Bonitas Eiendomsforvaltning AS",
+      "decision": "withheld",
+      "reasons": [
+        "homepage identifies another organisation; subsidiary mentions do not prove site ownership"
+      ]
+    },
+    {
+      "organisation_number": "828285572",
+      "legal_name": "FOKHOL BÆREKRAFTIGE GÅRD ANS",
+      "candidate_url": "https://fokhol.no/nb/",
+      "candidate_title": "Fokhol Gård – Biologisk Dynamisk Jordbruk",
+      "decision": "withheld",
+      "reasons": [
+        "partial legal-name overlap only"
+      ]
+    },
+    {
+      "organisation_number": "988971707",
+      "legal_name": "SAMEIET SOFIESGT 14",
+      "candidate_url": "https://ecitnorian.com/no/",
+      "candidate_title": "ECIT NORIAN | Vi former fremtidens regnskap og lønn",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "919035706",
+      "legal_name": "SAMEIET HOVINBEKKEN III",
+      "candidate_url": "https://enqvist.no/",
+      "candidate_title": "Hjem | Velkommen til Enqvist Gruppen",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "982229855",
+      "legal_name": "SAMEIET ROSENLUNDSGATA 19",
+      "candidate_url": "https://www.phmgroup.no/",
+      "candidate_title": "PHM Group Norway - Stort eller lokalt? Hvorfor ikke begge deler?",
+      "decision": "withheld",
+      "reasons": [
+        "group homepage does not identify the subsidiary as its primary entity"
+      ]
+    },
+    {
+      "organisation_number": "979555628",
+      "legal_name": "BYGDØY ALLE CLAIMS HANDLING AS",
+      "candidate_url": "https://baclaims.no/",
+      "candidate_title": "BACH",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "965123385",
+      "legal_name": "ASSEMBLIN VENTILASJON AS",
+      "candidate_url": "https://www.assemblin.com/no/",
+      "candidate_title": "Assemblin AS - Assemblin",
+      "decision": "withheld",
+      "reasons": [
+        "most legal-name tokens appear, but exact identity is incomplete"
+      ]
+    },
+    {
+      "organisation_number": "928822672",
+      "legal_name": "PLUG NORD AS",
+      "candidate_url": "https://www.plugport.no/",
+      "candidate_title": "Shore Power Infrastructure for Ports | Plug",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "992786116",
+      "legal_name": "KJEMIKALIETANK AS",
+      "candidate_url": "https://seatrans.no/",
+      "candidate_title": "Seatrans Group | Reliable Shipping and Logistics Solutions",
+      "decision": "withheld",
+      "reasons": [
+        "group homepage does not identify the subsidiary as its primary entity"
+      ]
+    },
+    {
+      "organisation_number": "990270767",
+      "legal_name": "BJARØY EIENDOM AS",
+      "candidate_url": "https://bjaroy.no/",
+      "candidate_title": "Forside - Bjarøy AS",
+      "decision": "withheld",
+      "reasons": [
+        "most legal-name tokens appear, but exact identity is incomplete"
+      ]
+    },
+    {
+      "organisation_number": "815951972",
+      "legal_name": "WESTSHORE AS",
+      "candidate_url": "https://offshore.ssyglobal.com/",
+      "candidate_title": "SSY Offshore",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "975650324",
+      "legal_name": "ULLEVÅLSVEIEN 53 BOLIGSAMEIET",
+      "candidate_url": "https://www.obf.no/",
+      "candidate_title": "Boligforvaltning og regnskapstjenester i Oslo og omegn | OBF",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "932304937",
+      "legal_name": "BORETTSLAGET SAXEMARKA VIII",
+      "candidate_url": "https://www.obos.no/",
+      "candidate_title": "OBOS",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "911562014",
+      "legal_name": "STRYSSE MEK AS",
+      "candidate_url": "https://www.stryssemek.no/",
+      "candidate_title": "StrysseMek AS | Mekanisk verksted i Veggli",
+      "decision": "withheld",
+      "reasons": [
+        "most legal-name tokens appear, but exact identity is incomplete"
+      ]
+    },
+    {
+      "organisation_number": "912054292",
+      "legal_name": "STOREHAGEN SAMEIGE",
+      "candidate_url": "https://agioforvaltning.no/",
+      "candidate_title": "Forretningsfører for sameie og borettslag | Bytt enkelt og trygt",
+      "decision": "withheld",
+      "reasons": [
+        "homepage identifies another organisation; subsidiary mentions do not prove site ownership"
+      ]
+    },
+    {
+      "organisation_number": "920410766",
+      "legal_name": "KANALVEIEN 52C AS",
+      "candidate_url": "https://www.rasmussen-eiendom.no/",
+      "candidate_title": "Forside · Rasmussen Eiendom",
+      "decision": "withheld",
+      "reasons": [
+        "homepage identifies another organisation; subsidiary mentions do not prove site ownership"
+      ]
+    },
+    {
+      "organisation_number": "882695662",
+      "legal_name": "ASTANEL AS",
+      "candidate_url": "https://www.astanel.no/",
+      "candidate_title": "Astanel – Innovation to market",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "932298600",
+      "legal_name": "BORETTSLAGET VÅLAND V",
+      "candidate_url": "https://bate.no/",
+      "candidate_title": "For deg",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "983906818",
+      "legal_name": "KBTE AS",
+      "candidate_url": "https://kbte.no/",
+      "candidate_title": "kbte.no",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "936993850",
+      "legal_name": "RELYON NORWAY AS",
+      "candidate_url": "https://falcknutec.no/",
+      "candidate_title": "Falcknutec.no – Alternative og tradisjonelle bygg",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "925037141",
+      "legal_name": "AS KARMA",
+      "candidate_url": "https://www.haugalandmuseene.no/",
+      "candidate_title": "Vakre Haugalandet - Haugalandmuseene.no",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    },
+    {
+      "organisation_number": "815650212",
+      "legal_name": "ONARHEIM SKOG AS",
+      "candidate_url": "https://www.onarheimskog.no/",
+      "candidate_title": "onarheimskog.no",
+      "decision": "withheld",
+      "reasons": [
+        "registry-linked URL lacks strong exact-entity identity evidence"
+      ]
+    }
+  ],
+  "financial_checks": {
+    "company_profiles": 100,
+    "latest_account_years": {
+      "2025": 99,
+      "2026": 1
+    },
+    "all_latest_years_match_registry": true,
+    "group_statements_excluded_from_company_claims": true
+  },
+  "news": {
+    "published_posts": 0,
+    "note": "No eligible dated individual news posts captured in this bounded sample. Homepage metadata and archive labels are not counted."
+  },
+  "corrections_found_during_review": [
+    "KBTE cookie-only/domain-title page was initially accepted; final identity gate withholds it.",
+    "Obed dated homepage metadata was initially eligible in the public-claim exporter; final news gate excludes home/about/product/archive paths.",
+    "Blocked source rechecks initially emitted false content deletions; final refresh separates availability changes from material business facts."
+  ],
+  "limitations": [
+    "Company-owned evidence and conservative rules are not independent platform ownership verification.",
+    "Name aliases can be missed. No population precision or recall is asserted."
+  ]
+}

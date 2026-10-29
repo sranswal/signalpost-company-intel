@@ -1,0 +1,19 @@
+{
+  "source_commit": "38a56cc1b7fd8e2d2d6209d2fb2e30b7d60642e6",
+  "setup": "uv sync --locked",
+  "python": "3.12.16",
+  "installed_distributions": 47,
+  "clean_clone": true,
+  "tests": {
+    "passed": 131,
+    "subtests_passed": 5
+  },
+  "first_run_replay": "passed",
+  "cli_help": "passed",
+  "snapshot_idempotence": {
+    "profiles": 100,
+    "new_requests": 0,
+    "material_changes": 0
+  },
+  "scope_note": "Core pipeline tested in a clean clone of this source commit; final release also includes regenerated smoke artifacts and display-count fixes."
+}
