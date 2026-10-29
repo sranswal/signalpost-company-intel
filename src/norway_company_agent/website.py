@@ -18,6 +18,7 @@ import tldextract
 import trafilatura
 
 from .evidence import evidence
+from .news import article_metadata
 
 USER_AGENT = "builderr-signalpost-poc/0.1 (+https://builderr.ai)"
 SOCIAL_HOSTS = {
@@ -42,6 +43,8 @@ def assert_public_url(url: str) -> None:
     host = (parsed.hostname or "").lower().rstrip(".")
     if parsed.scheme not in {"http", "https"} or not host:
         raise ValueError("Only public HTTP(S) URLs are allowed")
+    if parsed.username is not None or parsed.password is not None:
+        raise ValueError("Credential-bearing URLs are blocked")
     if host == "localhost" or host.endswith(".localhost") or host.endswith(".local"):
         raise ValueError("Local hosts are blocked")
     try:
@@ -50,7 +53,7 @@ def assert_public_url(url: str) -> None:
         raise ValueError("Hostname did not resolve") from exc
     for address in addresses:
         ip = ipaddress.ip_address(address)
-        if not ip.is_global:
+        if not ip.is_global or ip.is_multicast or ip.is_reserved:
             raise ValueError("Private, loopback, link-local, multicast, and reserved addresses are blocked")
 
 
@@ -61,6 +64,7 @@ class SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 
 SAFE_OPENER = urllib.request.build_opener(SafeRedirectHandler())
+DOMAIN_EXTRACTOR = tldextract.TLDExtract(suffix_list_urls=())
 
 
 def normalize_homepage(value: str | None) -> str | None:
@@ -77,7 +81,7 @@ def normalize_homepage(value: str | None) -> str | None:
 
 def _registered_domain(url: str) -> str:
     parsed = urllib.parse.urlparse(url)
-    ext = tldextract.extract(parsed.hostname or "")
+    ext = DOMAIN_EXTRACTOR(parsed.hostname or "")
     return ext.top_domain_under_public_suffix
 
 
@@ -92,16 +96,23 @@ def _robots_allowed(url: str, timeout: float) -> bool:
         with SAFE_OPENER.open(request, timeout=timeout) as response:
             parser.parse(response.read().decode("utf-8", errors="replace").splitlines())
         return parser.can_fetch(USER_AGENT, url)
+    except urllib.error.HTTPError as exc:
+        return exc.code in {404, 410}
     except Exception:
-        # An unavailable robots file is not permission to ignore explicit site terms; callers retain
-        # the URL and can route uncertain domains to review. For this bounded homepage POC, allow one
-        # ordinary GET when robots.txt is absent rather than crawl deeper.
-        return True
+        # A failed permissions check is not permission to crawl.
+        return False
 
 
 def _social_links(base_url: str, soup: BeautifulSoup) -> list[dict[str, str]]:
     found: dict[tuple[str, str], dict[str, str]] = {}
-    candidates = [str(node.get("href") or "") for node in soup.select("a[href]")]
+    candidates = []
+    for node in soup.select("a[href]"):
+        context = " ".join([node.get_text(" ", strip=True), str(node.get("title") or ""), str(node.get("aria-label") or "")])
+        if node.parent:
+            context += " " + node.parent.get_text(" ", strip=True)[:500]
+        if re.search(r"(?:website|webdesign|design|developed|powered|theme|nettside|nettsiden|utviklet|laget)\s+(?:by|av|fra)|themeforest|wordpress", context, re.I):
+            continue
+        candidates.append(str(node.get("href") or ""))
     candidates.extend(str(node.get("data-href") or "") for node in soup.select("[data-href]"))
     candidates.extend(str(node.get("src") or "") for node in soup.select("iframe[src]"))
     for candidate in candidates:
@@ -224,6 +235,7 @@ def _fetch_secondary_page(url: str, *, homepage_domain: str, timeout: float, max
         page_soup = BeautifulSoup(page_html, "lxml")
         page_text = trafilatura.extract(page_html, url=final_url, include_links=False, include_tables=False, favor_precision=True) or ""
         page = {
+            **article_metadata(page_soup, final_url),
             "url": final_url,
             "title": page_soup.title.get_text(" ", strip=True)[:500] if page_soup.title else "",
             "main_text_excerpt": page_text[:5000],
@@ -290,18 +302,20 @@ def fetch_website(url: str | None, *, timeout: float = 15.0, max_bytes: int = 2_
         description_tag = soup.select_one('meta[name="description"], meta[property="og:description"]')
         description = str(description_tag.get("content") or "").strip() if description_tag else ""
         value = {
+            **article_metadata(soup, final_url),
             "requested_url": normalized,
             "final_url": final_url,
             "registered_domain": _registered_domain(final_url),
             "title": title[:500],
             "description": description[:2000],
             "main_text_excerpt": text[:5000],
+            "identity_text_excerpt": " ".join(node.get_text(" ", strip=True) for node in soup.select('footer, address, [itemprop="legalName"]'))[:3000],
             "social_links": _social_links(final_url, soup),
             "structured_organisations": _jsonld_organisations(structured),
             "content_sha256": __import__("hashlib").sha256(raw).hexdigest(),
             "extraction_state": _extraction_state(text, soup),
         }
-        pages = [{"url": final_url, "title": title[:500], "main_text_excerpt": text[:5000], "content_sha256": value["content_sha256"]}]
+        pages = [{**article_metadata(soup, final_url), "url": final_url, "title": title[:500], "main_text_excerpt": text[:5000], "content_sha256": value["content_sha256"]}]
         social = value["social_links"]
         crawl_errors = []
         requests = 2

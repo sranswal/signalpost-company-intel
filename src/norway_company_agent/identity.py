@@ -40,7 +40,7 @@ def assess_website_identity(profile: dict[str, Any]) -> dict[str, Any]:
     structured_names = _structured_names(value.get("structured_organisations") or [])
     rendered = value.get("js_fallback") or {}
     homepage_identity_parts = [
-        value.get("title"), value.get("description"), value.get("identity_text_excerpt"), hostname, *structured_names,
+        value.get("title"), value.get("description"), value.get("identity_text_excerpt"), *structured_names,
         rendered.get("title"),
     ]
     candidate_parts = [
@@ -55,8 +55,9 @@ def assess_website_identity(profile: dict[str, Any]) -> dict[str, Any]:
     normalized_candidate_text = " ".join(_tokens(candidate_text))
     candidate_tokens = set(_tokens(candidate_text))
     org_digits = re.sub(r"\D", "", str(profile.get("organisation_number") or ""))
-    compact_candidate = re.sub(r"\D", "", candidate_text)
-    compact_homepage_candidate = re.sub(r"\D", "", homepage_candidate_text)
+    # Match a bounded number, never digits concatenated across unrelated fields.
+    homepage_orgs = set(re.findall(r"(?<!\d)\d{3}[ .]?\d{3}[ .]?\d{3}(?!\d)", homepage_candidate_text))
+    homepage_orgs = {re.sub(r"\D", "", number) for number in homepage_orgs}
     overlap = sorted(set(core) & candidate_tokens)
     ratio = len(overlap) / len(set(core)) if core else 0.0
     reasons = []
@@ -66,9 +67,21 @@ def assess_website_identity(profile: dict[str, Any]) -> dict[str, Any]:
         "find the best information and most relevant links on all topics related to",
     )
     normalized_raw = unicodedata.normalize("NFKD", candidate_text).encode("ascii", "ignore").decode().casefold()
-    homepage_token_sets = [set(_tokens(part)) for part in homepage_identity_parts if part]
-    exact_homepage_name = bool(core and any(set(core).issubset(tokens) for tokens in homepage_token_sets))
-    substantive_homepage = len(str(value.get("main_text_excerpt") or "").strip()) >= 100
+    name_sequence = " ".join(core)
+    exact_homepage_name = bool(core and any(
+        re.search(r"(?<!\w)" + re.escape(name_sequence) + r"(?!\w)", " ".join(_tokens(part)))
+        for part in homepage_identity_parts if part
+    ))
+    # A group directory/footer may list the subsidiary without owning its site.
+    title = str(value.get("title") or "").strip()
+    domain_only_title = title.casefold().removeprefix("www.") == hostname.casefold().removeprefix("www.")
+    primary_names = [None if domain_only_title else title, *[item.get("legalName") or item.get("name") for item in value.get("structured_organisations", []) if isinstance(item, dict)]]
+    primary_match = any(core and (
+        _tokens(part)[:len(core)] == core or any(_tokens(segment) == core for segment in re.split(r"[|–—]", str(part)))
+    ) for part in primary_names if part)
+    conflicting_org = bool(homepage_orgs - {org_digits})
+    business_text = "\n".join(line for line in str(value.get("main_text_excerpt") or "").splitlines() if not re.search(r"cookie|informasjonskaps|samtykke", line, re.I))
+    substantive_homepage = len(business_text.strip()) >= 100
     is_business_sports_club = bool(re.search(r"(?:^|\s)B\.?\s*I\.?\s*L\.?(?:\s|$)", str(profile.get("name") or ""), re.I))
     if any(marker in normalized_raw for marker in parked_markers):
         score = 0.1
@@ -76,13 +89,19 @@ def assess_website_identity(profile: dict[str, Any]) -> dict[str, Any]:
     elif is_business_sports_club and "bedriftsidrett" not in normalized_candidate_text and "b i l" not in normalized_candidate_text:
         score = 0.3
         reasons.append("business sports-club entity points to the operating company's site without club evidence")
-    elif org_digits and org_digits in compact_homepage_candidate:
+    elif not primary_match and re.search(r"\b(group|konsern|holding)\b", str(value.get("title") or ""), re.I):
+        score = 0.3
+        reasons.append("group homepage does not identify the subsidiary as its primary entity")
+    elif conflicting_org and not primary_match:
+        score = 0.3
+        reasons.append("homepage identifies another organisation; subsidiary mentions do not prove site ownership")
+    elif org_digits and org_digits in homepage_orgs and exact_homepage_name and not conflicting_org:
         score = 1.0
         reasons.append("exact organisation number appears in homepage identity evidence")
-    elif len(core) >= 2 and exact_homepage_name:
+    elif len(core) >= 2 and exact_homepage_name and primary_match and not conflicting_org:
         score = 0.95
         reasons.append("all normalized legal-name tokens appear together in homepage identity evidence")
-    elif len(core) == 1 and exact_homepage_name and substantive_homepage:
+    elif len(core) == 1 and exact_homepage_name and substantive_homepage and primary_match and not conflicting_org:
         score = 0.95
         reasons.append("single distinctive legal-name token appears in homepage identity evidence with substantive content")
     elif ratio >= 0.75 and len(overlap) >= 2:
@@ -102,7 +121,7 @@ def assess_website_identity(profile: dict[str, Any]) -> dict[str, Any]:
         "legal_name_tokens": core,
         "matched_tokens": overlap,
         "reasons": reasons,
-        "method": "deterministic_name_org_evidence_v2",
+        "method": "deterministic_name_org_evidence_v3",
     }
 
 
@@ -113,16 +132,10 @@ def assess_social_identity(profile: dict[str, Any], link: dict[str, str]) -> dic
     handle_compact = "".join(_tokens(handle_text))
     matched = [token for token in core if token in handle_compact]
     core_compact = "".join(core)
-    ratio = len(set(matched)) / len(set(core)) if core else 0.0
-    if core_compact and core_compact in handle_compact:
+    handle_tokens = _tokens(handle_text.removeprefix("/company/"))
+    if core_compact and core_compact == "".join(handle_tokens):
         score = 0.98
         reason = "normalized legal-name sequence appears in the social handle"
-    elif len(core) == 1 and matched:
-        score = 0.95
-        reason = "single distinctive legal-name token appears in the social handle"
-    elif ratio >= 0.75 and len(set(matched)) >= 2:
-        score = 0.9
-        reason = "most legal-name tokens appear in the social handle"
     else:
         score = 0.3
         reason = "social handle lacks strong exact-entity name evidence"
@@ -132,7 +145,7 @@ def assess_social_identity(profile: dict[str, Any], link: dict[str, str]) -> dic
         "publishable": score >= 0.9,
         "matched_tokens": matched,
         "reason": reason,
-        "method": "deterministic_social_handle_identity_v1",
+        "method": "deterministic_social_handle_identity_v2",
     }
 
 

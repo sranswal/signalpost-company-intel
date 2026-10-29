@@ -1,43 +1,21 @@
-# Minimal output contract
+# Signalpost revision-2 output
 
-Emit one JSON object per input organisation number.
+One JSON object per evaluator-supplied organisation number, in input order. `schema_version` is `signalpost-v2`.
 
-```json
-{
-  "organisation_number": "123456789",
-  "run": {
-    "run_id": "2026-08-24-a",
-    "started_at": "2026-08-24T06:00:00Z",
-    "completed_at": "2026-08-24T06:00:08Z",
-    "terminal_status": "completed"
-  },
-  "claims": [
-    {
-      "field": "official_website",
-      "value": "https://example.no/",
-      "availability": "available",
-      "confidence": 0.99,
-      "evidence_ids": ["ev-1"]
-    }
-  ],
-  "evidence": [
-    {
-      "id": "ev-1",
-      "source_url": "https://example.no/",
-      "source_class": "company_owned",
-      "retrieved_at": "2026-08-24T06:00:04Z",
-      "content_sha256": "...",
-      "claim_span": "Example AS, organisation number 123 456 789"
-    }
-  ],
-  "changes": [],
-  "errors": [],
-  "operations": {
-    "requests": 4,
-    "runtime_ms": 8120,
-    "third_party_cost_usd": 0
-  }
-}
-```
+- `organisation_number`, `legal_identity`: exact registry identity.
+- `state`: `available`, `not_available`, `blocked`, `not_applicable`, `ambiguous` or `failed`.
+- `modules`: per-module state, final timestamp and retry count when supplied.
+- `claims`: published field/value pairs, availability and `evidence_ids`. Financial claims carry reporting periods, scope and freshness. An uncertain field has a null value and an explicit unavailable/ambiguous state.
+- `evidence`: source records with stable IDs, URLs, timestamps, source classes, hashes and source snapshots. Rejected website snapshots are labelled `raw_source_candidate`.
+- `profile`: internal normalized profile, including rejected candidates and separately scoped group statements. It is not the list of published facts.
+- `changes`: material differences against an explicitly supplied prior profile.
+- `refresh`: prior snapshot hash and same-snapshot comparison result. Prior source evidence is preserved under `profile.previous_evidence`.
+- `errors`: module and worker failures, retained even when other fields succeed.
+- `operations`: company runtime, counted request attempts, bytes where measured, and third-party API charges.
+- `started_at`, `completed_at`, `run_id`: run metadata.
 
-Allowed availability states are `available`, `not_available`, `blocked`, `not_applicable`, `ambiguous` and `failed`. A checked source that has zero jobs or zero locations is different from a source that was not checked.
+A company can have an overall `available` result while individual fields are blocked or ambiguous. A worker crash always sets its result to `failed`. Failure rows count as terminal results, never silent drops. A malformed input batch is rejected before research.
+
+Internal evidence statuses retain the extractor vocabulary (`not_found`, `source_error`, etc.); `state` and claim `availability` use the six public contract values. Candidate source URLs and raw registry website fields do not constitute published website ownership.
+
+`report.json` records batch runtime, request counts, bytes, request and company latency summaries, emitted results, worker failures, refresh changes and contract checks. Website request counts include explicit fetch attempts; redirects can add wire requests beyond these application-level counts. Failed-worker partial metrics are marked unknown rather than claimed as measured zero.

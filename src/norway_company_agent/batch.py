@@ -8,18 +8,10 @@ from typing import Any, Iterable
 from .evidence import evidence, utc_now
 from .official import ACCOUNTING_OBLIGATION_SOURCE, accounting_obligation_assessment
 from .sampling import iter_bulk
+from .publication import STATES, availability, published_claims
 
 
-TERMINAL_STATES = {
-    "complete",
-    "not_applicable",
-    "not_found",
-    "blocked_policy",
-    "blocked_robots",
-    "source_error",
-    "budget_exhausted",
-    "submission_error",
-}
+TERMINAL_STATES = STATES
 
 
 def read_organisation_inputs(path: str | Path) -> list[dict[str, Any]]:
@@ -140,21 +132,7 @@ def profiles_from_bulk(
 
 
 def evidence_terminal_state(record: dict[str, Any] | None) -> str:
-    if not record:
-        return "submission_error"
-    status = record.get("status")
-    if status == "available":
-        return "complete"
-    if status == "not_applicable":
-        return "not_applicable"
-    if status == "not_found":
-        return "not_found"
-    if status == "blocked":
-        note = str(record.get("note") or "").casefold()
-        return "blocked_robots" if "robot" in note else "blocked_policy"
-    if status == "source_error":
-        return "source_error"
-    return "submission_error"
+    return availability(record)
 
 
 def terminal_envelope(
@@ -165,21 +143,33 @@ def terminal_envelope(
     started_at: str,
     completed_at: str,
 ) -> dict[str, Any]:
+    modules = list(modules)
     module_states = {}
     for module in modules:
         record = profile.get("evidence", {}).get(module)
         module_states[module] = {
-            "state": evidence_terminal_state(record),
+            "state": availability(record, module),
             "retry_count": int((record or {}).get("retry_count") or 0),
             "final_timestamp": (record or {}).get("retrieved_at") or completed_at,
         }
-    entity_state = "submission_error" if any(item["state"] == "submission_error" for item in module_states.values()) else "complete"
+    states = {item["state"] for item in module_states.values()}
+    entity_state = "failed" if profile.get("worker_error") or not states else next((state for state in ("available", "ambiguous", "blocked", "failed", "not_available", "not_applicable") if state in states), "failed")
+    claims, sources = published_claims(profile, modules)
     return {
+        "schema_version": "signalpost-v2",
         "run_id": run_id,
         "organisation_number": profile["organisation_number"],
         "state": entity_state,
         "started_at": started_at,
         "completed_at": completed_at,
+        "legal_identity": {key: profile.get(key) for key in ("organisation_number", "name", "legal_form")},
+        "claims": claims,
+        "evidence": sources,
+        "changes": profile.get("change_history") or [],
+        "refresh": profile.get("refresh_metadata") or {"previous_snapshot": None},
+        "errors": ([{"module": "worker", "message": profile["worker_error"]}] if profile.get("worker_error") else []) + [{"module": module, "message": (profile.get("evidence", {}).get(module) or {}).get("note") or "Module failed"} for module, state in module_states.items() if state["state"] == "failed"],
+        "operations": profile.get("run_metrics") or {},
+        "publication_policy": "Only claims are attributable facts; profile/evidence contain labelled raw candidate snapshots.",
         "modules": module_states,
         "profile": profile,
     }

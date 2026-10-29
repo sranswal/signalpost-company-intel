@@ -35,6 +35,11 @@ out/
 htmlcov/
 .ruff_cache/
 .mypy_cache/
+.tmp-test-deps/
+.tmp-*/
+/brreg-enheter.csv
+/signalpost-universe.jsonl.gz
+/staging/
 
 # 7. IDEs and Editors
 .vscode/

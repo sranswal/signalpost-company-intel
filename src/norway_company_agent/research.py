@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from .official import financial_sort_key
 
 
 def _claim(label: str, value: Any, record: dict[str, Any], classification: str) -> dict[str, Any]:
@@ -41,7 +42,9 @@ def answer_profile(row: dict[str, Any], question: str) -> dict[str, Any]:
     if all_topics or any(term in q for term in financial_terms):
         records = (financial.get("value") or {}).get("records") or []
         if records:
-            latest = records[0]
+            latest = max(records, key=financial_sort_key)
+            if not ((financial.get("value") or {}).get("freshness") or {}).get("latest_verified"):
+                unsupported.append("Latest filing freshness is unverified or stale; these are the newest accounts returned, not a verified latest filing.")
             for label, key in (
                 ("Reporting period", "period"),
                 ("Revenue", "revenue"),
@@ -74,7 +77,7 @@ def answer_profile(row: dict[str, Any], question: str) -> dict[str, Any]:
     website = evidence.get("website", {})
     if all_topics or "social" in q:
         value = website.get("value") or {}
-        website_publishable = (value.get("identity_assessment") or {}).get("publishable", True)
+        website_publishable = (value.get("identity_assessment") or {}).get("publishable", False)
         if value.get("description") and website_publishable:
             facts.append(_claim("Website description", value["description"], website, "company_reported_claim"))
         for item in (value.get("social_links") or []) if website_publishable else []:
@@ -110,7 +113,7 @@ UNSUPPORTED_SCREEN_TERMS = {
 
 def _latest_financial(row: dict[str, Any]) -> dict[str, Any]:
     records = ((row.get("evidence", {}).get("financials", {}).get("value") or {}).get("records") or [])
-    return records[0] if records else {}
+    return max(records, key=financial_sort_key) if records else {}
 
 
 def _numeric_operator(phrase: str) -> str:
@@ -199,7 +202,7 @@ def _screen_value(row: dict[str, Any], field: str) -> Any:
         return _latest_financial(row).get(field)
     if field == "website":
         record = row.get("evidence", {}).get("website", {})
-        return record.get("status") == "available" and bool((record.get("value") or {}).get("identity_assessment", {}).get("publishable", True))
+        return record.get("status") == "available" and bool((record.get("value") or {}).get("identity_assessment", {}).get("publishable", False))
     if field == "financials":
         return row.get("evidence", {}).get("financials", {}).get("status") == "available"
     if field == "industry":

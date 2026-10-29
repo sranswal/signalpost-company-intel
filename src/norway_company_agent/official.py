@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import threading
 import time
+from datetime import date
 from typing import Any, Callable
 
 from .evidence import evidence
@@ -71,12 +72,45 @@ def _get(value: Any, *path: str) -> Any:
     return value
 
 
+def financial_period(record: dict[str, Any]) -> tuple[date, date] | None:
+    period = record.get("period") or record.get("regnskapsperiode") or {}
+    try:
+        start = date.fromisoformat(str(period.get("fraDato") or period.get("from"))[:10])
+        end = date.fromisoformat(str(period.get("tilDato") or period.get("to"))[:10])
+        return (start, end) if end >= start else None
+    except (ValueError, TypeError, AttributeError):
+        return None
+
+
+def financial_sort_key(record: dict[str, Any]) -> tuple:
+    period = financial_period(record)
+    return (*(period[::-1] if period else (date.min, date.min)), str(record.get("record_id") or record.get("id") or ""))
+
+
+def comparable_financials(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return the newest compatible pair, ordered older to newer, or abstain."""
+    ordered = sorted((row for row in records if financial_period(row)), key=financial_sort_key, reverse=True)
+    if not ordered:
+        return []
+    newer = ordered[0]
+    start, end = financial_period(newer)
+    for older in ordered[1:]:
+        old_start, old_end = financial_period(older)
+        same_calendar_span = (start.month, start.day, end.month, end.day, end.year - start.year) == (old_start.month, old_start.day, old_end.month, old_end.day, old_end.year - old_start.year)
+        same_days = (end - start).days == (old_end - old_start).days
+        if old_end < start and (same_calendar_span or same_days) and all(newer.get(key) is not None and newer.get(key) == older.get(key) for key in ("currency", "account_type")):
+            return [older, newer]
+    return []
+
+
 def normalize_financials(body: Any) -> dict[str, Any]:
     records = body if isinstance(body, list) else []
     if not records:
         return {"records": []}
     normalized = []
-    for item in records[:3]:
+    for item in records:
+        if not isinstance(item, dict):
+            continue
         normalized.append({
             "record_id": item.get("id"),
             "account_type": item.get("regnskapstype"),
@@ -90,7 +124,25 @@ def normalize_financials(body: Any) -> dict[str, Any]:
             "equity": _get(item, "egenkapitalGjeld", "egenkapital", "sumEgenkapital"),
             "debt": _get(item, "egenkapitalGjeld", "gjeldOversikt", "sumGjeld"),
         })
-    return {"records": normalized}
+    normalized.sort(key=financial_sort_key, reverse=True)
+    # Group statements are a separate scope, never the legal entity's figures.
+    group_records = [row for row in normalized if row.get("account_type") == "KONSERN"]
+    entity_records = [row for row in normalized if row.get("account_type") != "KONSERN"]
+    return {"records": entity_records, "group_records": group_records, "comparison": comparable_financials(entity_records), "ordering": "period_end_descending"}
+
+
+def assess_financial_freshness(profile: dict[str, Any]) -> None:
+    financial = profile.get("evidence", {}).get("financials", {})
+    value = financial.get("value") or {}
+    records = value.get("records") or []
+    live = (profile.get("evidence", {}).get("registry_live", {}).get("value") or {})
+    expected = str(live.get("latest_submitted_accounts") or profile.get("latest_submitted_accounts") or "")[:4]
+    records.sort(key=financial_sort_key, reverse=True)
+    latest = financial_period(records[0]) if records else None
+    current = bool(latest and expected.isdigit() and latest[1].year == int(expected))
+    value["freshness"] = {"expected_latest_year": expected or None, "observed_latest_year": latest[1].year if latest else None, "latest_verified": current, "status": "current" if current else "stale_or_unverified"}
+    if financial.get("status") == "available":
+        financial["value"] = value
 
 
 def normalize_financial_history(body: Any, org: str) -> dict[str, Any]:

@@ -1,128 +1,56 @@
-# Signalpost reference agent
+# Signalpost company intelligence agent
 
-This is a runnable starting point for the Signalpost company-research challenge. It is intentionally a solid baseline, not a winning submission.
+A deterministic Norwegian company-research agent for the [Signalpost challenge](https://builderr.ai/challenges/signalpost). It accepts evaluator-supplied organisation numbers, anchors identity in BRREG, and returns one source-linked terminal result per company.
 
-The public universe contains 411,160 eligible companies. A valid entry must process at least 1,000; you may process 10,000 or the full universe.
+## Reproduce
 
-## What it already does
-
-- reads a batch of Norwegian organisation numbers;
-- anchors identity in the Brønnøysund bulk registry;
-- fetches official financials, roles, group links and registered workplaces;
-- visits the registry-listed website and rejects weak entity matches;
-- emits one terminal JSONL envelope per input;
-- records sources, retrieval times, content hashes, request counts and latency;
-- supports checkpoint/resume and a deterministic refresh replay;
-- includes examples for external-footprint discovery and an evidence-bounded research agent.
-
-## First run: try one saved example
-
-Requires Python 3.12+. Open a terminal inside this extracted folder.
-
-Before downloading company data or running a full crawl, try the bundled public
-sample. It uses saved responses: no API key, registry download or live web requests.
-
-On Windows:
+Requires Python 3.12+ and uv. Install the exact dependency lock:
 
 ```bash
-py first_run.py
+uv sync --locked
 ```
 
-On macOS or Linux:
+Builderr supplies the frozen registry snapshot and official input batch. For local work, download the public registry snapshot:
 
 ```bash
-python3 first_run.py
+curl -L https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv -o brreg-enheter.csv
 ```
 
-If the launcher does not work, run the same check directly:
+Run any evaluator batch, without changing code or choosing replacement companies:
 
 ```bash
-python3 scripts/run_refresh_replay.py --manifest tests/fixtures/refresh-snapshots.json --output out/refresh-demo.json
+uv run --locked python scripts/run_competition_batch.py --organisations evaluator-companies.jsonl --bulk brreg-enheter.csv --profiles-output out/run/profiles.jsonl --output out/run/envelopes.jsonl --report out/run/report.json --run-id evaluator-run
 ```
 
-Open `out/refresh-demo.json`. The `events` list shows what changed between two
-versions of one company profile and the source evidence for each change. The sample
-should find two expected changes, no false changes, and no extra changes when the
-same data is checked again.
+The input length is inferred. An optional `--expected-count` asserts a specific count. JSONL rows contain `organisation_number`; JSON arrays and one-number-per-line files are also accepted. Both plain and gzip-compressed registry CSV files work.
 
-The report's `qualification_passed` field refers only to this public sample check.
-It does not qualify an entry for the competition or prove live information coverage.
-The printed request counts are reads from saved responses, not network calls.
+## What is published
 
-## Next: research live companies
+- Official legal identity, roles, locations, group relationships and company-level annual accounts.
+- A company website only after exact-entity evidence passes. Group, brand, property-manager and uncertain pages remain candidate evidence.
+- Social accounts only from an accepted site and an exact full normalized handle match. This conservative heuristic can miss legitimate aliases.
+- News only from dated individual news/article paths with original publication metadata. Homepage, product, about, archive and modified-only dates are excluded.
+- Accounts sorted by reporting period before selection, with group statements kept separately. Freshness is checked against the live registry year; comparisons use compatible periods, currencies and account scopes, older to newer.
 
-Requires Python 3.12+ and `uv`. This step downloads data and makes live requests.
-The manifest selector requires at least 1,000 companies for a full entry. You can
-use its first ten rows for a private smoke test before running the full batch.
+Public facts are in `claims`. Raw source candidates in `profile` and `evidence` are labelled and must not be treated as published facts. Every claim references evidence with a source URL, retrieval timestamp and hash where a response was captured. The six public states are `available`, `not_available`, `blocked`, `not_applicable`, `ambiguous` and `failed`.
+
+## Refresh and resilience
+
+Append `--previous-profiles out/previous/profiles.jsonl` to preserve the prior evidence and emit `changes.jsonl` beside the envelopes. Previous snapshots must contain the same company membership. Retrieval timestamps alone do not create changes. `--changes-output` overrides the change-file path.
+
+Each company gets a terminal row even if a worker fails. Checkpoint files are written atomically. `--resume` revalidates cached identity gates but does not make cached evidence fresh; use a fresh run for official evaluation.
+
+## Validation and review
 
 ```bash
-uv sync
-curl -L 'https://data.brreg.no/enhetsregisteret/api/enheter/lastned/csv' -o brreg-enheter.csv
-curl -L 'https://builderr.ai/signalpost-company-universe-2025.jsonl.gz' -o signalpost-universe.jsonl.gz
-
-uv run python select_entry_batch.py \
-  --universe signalpost-universe.jsonl.gz \
-  --count 1000 \
-  --output entry-companies.jsonl
-
-# Start with ten companies before the full 1,000-company run.
-head -n 10 entry-companies.jsonl > smoke-companies.jsonl
-
-uv run python scripts/run_competition_batch.py \
-  --organisations smoke-companies.jsonl \
-  --bulk brreg-enheter.csv \
-  --profiles-output out/smoke-profiles.jsonl \
-  --output out/smoke-envelopes.jsonl \
-  --report out/smoke-report.json \
-  --run-id smoke-001 \
-  --expected-count 10
-
-# When the smoke output looks right, run your full entry.
-uv run python scripts/run_competition_batch.py \
-  --organisations entry-companies.jsonl \
-  --bulk brreg-enheter.csv \
-  --profiles-output out/profiles.jsonl \
-  --output out/envelopes.jsonl \
-  --report out/run-report.json \
-  --run-id local-001 \
-  --expected-count 1000
-
-uv run --with pytest pytest -q
+uv run --locked python -m pytest -q
+uv run --locked python first_run.py
 ```
 
-The published archive was clean-room verified on August 24, 2026: 104 tests and 5 subtests passed, followed by a one-company live BRREG smoke run with one terminal envelope, five requests and zero silent drops.
+The pinned development dependency is included by `uv sync --locked`. In restricted Windows environments, use `--basetemp .tmp-pytest` if the shared temporary directory is inaccessible.
 
-Increase `--count` and `--expected-count` together if you want to publish more than the 1,000-company minimum. The ten-row smoke test above is practice only. Do not set `select_entry_batch.py --count 10`: the selector enforces the 1,000-company entry minimum.
+The [revision-2 smoke artifacts](submission/v2/README.md) document an unseen 100-company sample, live runs, evidence review and replay checks. They are operational diagnostics, not an official competition score. Older `out/production-1000` artifacts belong to version 1 and are not revision-2 evidence.
 
-## The improvement loop
+See [reproduction and declarations](REPRODUCTION.md), [output schema](OUTPUT_CONTRACT.md), [source rights](SOURCE_RIGHTS.md), and [audit changes](docs/audit-hardening.md).
 
-1. Treat the organisation number as the anchor.
-2. Generate site/profile candidates from official data, the company site, lawful search providers and named people.
-3. Save every candidate and the evidence for or against it.
-4. Publish only exact-entity matches. Parent, brand, franchise and similarly named companies are not exact.
-5. Crawl static HTML first. Escalate to a browser only when a deterministic completeness check fails.
-6. Measure added supported coverage, wrong-company claims, runtime, requests and cost.
-7. Promote a strategy only when it improves coverage without weakening the accuracy gates.
-8. Freeze strategies and thresholds before the daily evaluation run.
-
-The strongest differentiator is external evidence that remains exact and auditable: official company pages, company-owned profiles, jobs, dated activity, ratings/reviews and permitted public signals. Do not trade accuracy for volume.
-
-## Important source rule
-
-Open-source code does not grant permission to scrape a platform. Follow each source's terms, robots policy, rate limits and licence. LinkedIn, Meta and Indeed are useful identity/discovery targets, but direct automated collection may be restricted. Use permitted APIs, licensed providers, company-owned outbound links, or return `blocked`/`not_available`.
-
-Read `docs/competition-control-loop.md`, `docs/external-connectors.md` and the public source policy before adding connectors.
-
-## Submission contract
-
-Submit a repository with:
-
-- at least 1,000 completed company profiles and the exact organisation-number manifest used;
-- one documented command that accepts a JSONL batch of organisation numbers;
-- exactly one terminal envelope per input;
-- pinned dependencies and reproducible setup;
-- a previous-snapshot input and material-change output;
-- a machine-readable run report with runtime, request count and third-party cost;
-- declared models, APIs, licences and source-rights assumptions.
-
-Email the repository URL, run command, models/APIs and expected cost per 100-company run to `submit@builderr.ai`.
+No LLM, paid search provider or platform scraper is used by the documented production command. Third-party API charges are $0; hosting and network costs depend on the evaluator environment. Experimental connector scripts are excluded from the production command.

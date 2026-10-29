@@ -577,7 +577,7 @@ class CompletenessScoreTests(unittest.TestCase):
                 "status": "available", "retrieved_at": "2026-08-23T00:00:00Z",
                 "value": {
                     "identity_assessment": {"publishable": True, "score": 1.0},
-                    "pages": [{"url": "https://example.test/aktuelt/new-contract", "title": "New contract", "content_sha256": "a" * 64}],
+                    "pages": [{"url": "https://example.test/aktuelt/new-contract", "title": "New contract", "article_title": "New contract", "article_type": "article", "published_at": "2026-08-20T00:00:00+00:00", "publication_date_source": "jsonld.datePublished", "content_sha256": "a" * 64}],
                 },
             }},
         }
@@ -734,13 +734,13 @@ class OperationsTests(unittest.TestCase):
             },
         }
         envelope = terminal_envelope(profile, run_id="day-1", modules=["registry", "website"], started_at="2026-01-01T00:00:00Z", completed_at="2026-01-01T00:01:00Z")
-        self.assertEqual(envelope["modules"]["registry"]["state"], "complete")
-        self.assertEqual(envelope["modules"]["website"]["state"], "blocked_robots")
+        self.assertEqual(envelope["modules"]["registry"]["state"], "available")
+        self.assertEqual(envelope["modules"]["website"]["state"], "blocked")
         self.assertTrue(validate_envelopes([envelope], 1)["passed"])
         self.assertFalse(validate_envelopes([envelope], 2)["passed"])
 
     def test_unknown_evidence_state_is_submission_error(self):
-        self.assertEqual(evidence_terminal_state({"status": "not_fetched"}), "submission_error")
+        self.assertEqual(evidence_terminal_state({"status": "not_fetched"}), "failed")
 
     def test_batch_resume_only_skips_profiles_with_all_terminal_modules(self):
         complete = {"evidence": {"registry": {"status": "available"}, "website": {"status": "not_found"}}}
@@ -815,7 +815,7 @@ class WebsiteTests(unittest.TestCase):
             content_type="text/html",
             body=(
                 b'<html><head><title>IT services</title></head><body><main>Useful services for customers.</main>'
-                b'<footer>Netsolution Viken AS, Kobbervikdalen 75 A, 3036 Drammen</footer></body></html>'
+                b'<footer>Netsolution Viken AS, org 985628572, Kobbervikdalen 75 A, 3036 Drammen</footer></body></html>'
             ),
             page_kind="homepage",
             retrieved_at="2026-08-23T00:00:00Z",
@@ -1689,11 +1689,11 @@ class DeletedEntityAndManifestTests(unittest.TestCase):
             completed_at="2026-10-17T00:00:01Z",
         )
         self.assertEqual(envelope["organisation_number"], "928987728")
-        self.assertEqual(envelope["state"], "complete")
+        self.assertEqual(envelope["state"], "available")
         self.assertIn("modules", envelope)
-        self.assertEqual(envelope["modules"]["registry"]["state"], "not_found")
-        self.assertEqual(envelope["modules"]["registry_live"]["state"], "complete")
-        self.assertEqual(envelope["modules"]["financials"]["state"], "not_found")
+        self.assertEqual(envelope["modules"]["registry"]["state"], "not_available")
+        self.assertEqual(envelope["modules"]["registry_live"]["state"], "available")
+        self.assertEqual(envelope["modules"]["financials"]["state"], "not_available")
         # Ensure zero fabrication of observations
         self.assertIsNone(site_activity_observation(deleted_profile))
 

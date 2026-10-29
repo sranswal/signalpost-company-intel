@@ -11,7 +11,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from norway_company_agent.identity import apply_website_identity_gate  # noqa: E402
-from norway_company_agent.website import fetch_website  # noqa: E402
 
 
 def main() -> None:
@@ -28,6 +27,7 @@ def main() -> None:
         website = row.get("evidence", {}).get("website", {})
         if website.get("status") != "available":
             if args.fetch_missing and row.get("website"):
+                from norway_company_agent.website import fetch_website
                 website, _ = fetch_website(row.get("website"), timeout=args.timeout)
             else:
                 continue

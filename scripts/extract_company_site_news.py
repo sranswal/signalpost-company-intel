@@ -5,8 +5,13 @@ import argparse
 import hashlib
 import json
 import re
+from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from norway_company_agent.news import publication_date, is_news_page
 
 
 NEWS_PATH = re.compile(r"/(?:news|press|aktuelt|nyheter|artikler|blog)(?:/|$)", re.I)
@@ -20,21 +25,21 @@ def observation(profile: dict) -> dict | None:
         return None
     pages = [
         page for page in (value.get("pages") or [])
-        if NEWS_PATH.search(urlparse(str(page.get("url") or "")).path)
+        if is_news_page(page)
     ]
     if not pages:
         return None
     # Prefer an individual article over an archive page when the bounded crawl
     # captured both. One observation is enough to prove site activity without
     # rewarding a site for repeated navigation links.
-    pages.sort(key=lambda page: (-len([part for part in urlparse(str(page.get("url") or "")).path.split("/") if part]), str(page.get("url") or "")))
+    pages.sort(key=lambda page: (datetime.fromisoformat(publication_date(page["published_at"])), str(page.get("url") or "")), reverse=True)
     page = pages[0]
     url = str(page.get("url") or "")
     digest = str(page.get("content_sha256") or "")
     if not url.startswith(("http://", "https://")) or len(digest) != 64:
         return None
     org = str(profile["organisation_number"])
-    title = str(page.get("title") or "Company news/activity page").strip()
+    title = str(page["article_title"]).strip()
     return {
         "id": "company-site-news-" + hashlib.sha256(f"{org}|{url}".encode()).hexdigest()[:24],
         "organisation_number": org,
@@ -42,6 +47,8 @@ def observation(profile: dict) -> dict | None:
         "signal_type": "public_post",
         "source_url": url,
         "retrieved_at": website.get("retrieved_at"),
+        "published_at": page["published_at"],
+        "publication_date_source": page["publication_date_source"],
         "content_sha256": digest,
         "exact_entity": True,
         "identity_proof": [{"type": "website_identity_gate", "score": identity.get("score"), "method": identity.get("method")}],

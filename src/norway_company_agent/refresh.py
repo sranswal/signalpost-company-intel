@@ -49,6 +49,15 @@ def diff_profile(previous: dict[str, Any], current: dict[str, Any]) -> list[dict
             continue
         record = _evidence_for(current, field)
         previous_record = _evidence_for(previous, field)
+        # A blocked/error response says nothing about a business fact disappearing.
+        # Availability changes belong in refresh metadata, not material changes.
+        if record.get("status") != "available":
+            continue
+        if field.startswith("website.") and not all(
+            ((source.get("value") or {}).get("identity_assessment") or {}).get("publishable")
+            for source in (record, previous_record)
+        ):
+            continue
         changes.append({
             "organisation_number": new_org,
             "field": field,

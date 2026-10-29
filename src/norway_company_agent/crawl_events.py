@@ -8,6 +8,7 @@ import trafilatura
 from bs4 import BeautifulSoup
 
 from .evidence import evidence, utc_now
+from .news import article_metadata
 from .website import _extraction_state, _jsonld_organisations, _registered_domain, _social_links, normalize_homepage, structured_social_links
 
 
@@ -50,6 +51,7 @@ def extract_page_event(
     identity_text = " ".join(node.get_text(" ", strip=True) for node in identity_nodes)
     identity_text = " ".join(identity_text.split())[:3000]
     event = {
+        **article_metadata(soup, final_url),
         **base,
         "status": "available",
         "title": title,
@@ -136,6 +138,7 @@ def merge_profile_events(profile: dict[str, Any], events: list[dict[str, Any]]) 
     social = {}
     for item in sorted(available, key=lambda value: (value.get("page_kind") != "homepage", value.get("final_url") or "")):
         page = {
+            **{key: item[key] for key in ("article_type", "article_title", "published_at", "publication_date_source") if key in item},
             "url": item.get("final_url"),
             "title": item.get("title") or "",
             "main_text_excerpt": item.get("main_text_excerpt") or "",
